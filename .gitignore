@@ -1,3 +1,6 @@
 .env
 db.js
 test.js
+credentials.json
+token.json
+t.json

@@ -11,6 +11,7 @@ const fs = require('fs')
 const path = require('path')
 const decode = require('urldecode')
 const moment = require('moment')
+const cron = require('node-cron')
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
@@ -20,11 +21,21 @@ const oAuth2Client = new google.auth.OAuth2(
   process.env.URL_AUTH_GMAIL
 )
 
-//Verificamos el token
-// if (fs.existsSync('./token.json')) {
-//   const token = require('./token.json')
-//   oAuth2Client.setCredentials(JSON.parse(JSON.stringify(token)))
-// }
+// Verificamos el token
+if (fs.existsSync('./token.json')) {
+  const token = require('./token.json')
+  oAuth2Client.setCredentials(JSON.parse(JSON.stringify(token)))
+  oAuth2Client.on('tokens', (tokens) => {
+    if (tokens.refresh_token) {
+      oAuth2Client.setCredentials({
+        refresh_token: tokens.refresh_token,
+      })
+    }
+    oAuth2Client.setCredentials({
+      refresh_token: tokens.refresh_token,
+    })
+  })
+}
 
 /**
  * Listar los correos no leidos
@@ -267,9 +278,18 @@ app.get('/execute', async (req, res, next) => {
   }
 })
 
-// main()
-//   .then((res) => {})
-//   .catch((err) => {})
+app.get('/success', async (req, res, next) => {
+  try {
+    res.sendFile(path.join(__dirname + '/views/landing.html'))
+  } catch (error) {
+    console.log(error)
+    res.status(403).json({ success: 0, error })
+  }
+})
+
+cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
+  main()
+})
 
 //Listen
 app.listen(3001, () => console.log('Servidor iniciado'))
