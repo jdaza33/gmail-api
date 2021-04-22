@@ -49,7 +49,7 @@ function listMessages() {
       {
         userId: 'me',
         q:
-          'from:pedidos@satdelamarca.com OR from:pedidos.2@satdelamarca.com OR from:pedidos.3@satdelamarca.com OR from:dmartinez@electrorenova.es is:unread',
+          'from:pedidos@satdelamarca.com OR from:pedidos.2@satdelamarca.com OR from:pedidos.3@satdelamarca.com OR from:dmartinez@electrorenova.es OR from:blackencio33@gmail.com is:unread',
       },
       (err, res) => {
         if (err) {
@@ -120,6 +120,8 @@ function modifyMessage(id) {
  * @returns {Object}
  */
 function getData(data, subj) {
+  console.log(data)
+
   if (data.indexOf('|') >= 0) {
     let arrayData = data.split('|')
     let newArrayData = []
@@ -141,6 +143,15 @@ function getData(data, subj) {
       marca,
       averia,
     ] = newArrayData
+
+    //Modificamos el nombre
+    let __nombre = nombre.split('\r\n')
+    nombre = __nombre[__nombre.length - 1] || nombre
+
+    //Verificamos el telefono
+    let [t1, t2] = telefono1.split(',')
+    if (t1) telefono1 = t1
+    if (t2) telefono2 = t2
 
     //Obtenemos el nro
     let nro = null
@@ -203,8 +214,6 @@ function insertDb({
 function main() {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log('asdasd')
-
       let messages = await listMessages()
 
       for (let message of messages) {
@@ -212,8 +221,8 @@ function main() {
         let { data, success } = getData(text, subject)
         if (success) {
           console.log(data)
-          await insertDb(data)
-          await modifyMessage(message.id)
+          // await insertDb(data)
+          // await modifyMessage(message.id)
         }
       }
 
@@ -287,9 +296,9 @@ app.get('/success', async (req, res, next) => {
   }
 })
 
-cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
-  main()
-})
+// cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
+//   main()
+// })
 
 //Listen
 app.listen(3001, () => console.log('Servidor iniciado'))
