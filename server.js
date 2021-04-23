@@ -12,6 +12,24 @@ const path = require('path')
 const decode = require('urldecode')
 const moment = require('moment')
 const cron = require('node-cron')
+const ConnectionSql = require('tedious').Connection
+const RequestSql = require('tedious').Request
+const TYPES = require('tedious').TYPES
+const connectionSql = new ConnectionSql({
+  server: process.env.HOST_DB,
+  options: {
+    database: process.env.DATABASE_DV,
+    encrypt: false,
+    rowCollectionOnRequestCompletion: true,
+  },
+  authentication: {
+    type: 'default',
+    options: {
+      userName: process.env.USER_DB,
+      password: process.env.PASS_DB,
+    },
+  },
+})
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
@@ -195,15 +213,22 @@ function insertDb({
 }) {
   return new Promise(async (resolve, reject) => {
     try {
-      //Iniciamos la db
-      await sql.connect(process.env.URL_DB)
-
-      //Insertamos los datos
-      const result = await sql.query(
-        `INSERT INTO GmailAPI.dbo.reporte (nombre, direccion, cp, telefono1, telefono2, aparato, marca, averia, createdAt, status, nro) VALUES('${nombre}', '${direccion}', '${cp}', '${telefono1}', '${telefono2}', '${aparato}', '${marca}', '${averia}', ${moment().valueOf()}, '0', ${nro})`
+      let requestSql = new RequestSql(
+        `INSERT INTO GmailAPI.dbo.reporte (nombre, direccion, cp, telefono1, telefono2, aparato, marca, averia, createdAt, status, nro) 
+        VALUES('${nombre}', '${direccion}', '${cp}', '${telefono1}', '${telefono2}', '${aparato}', '${marca}', '${averia}', @createdAt, '0', ${nro})`,
+        function (err, rowCount, rows) {
+          if (err) {
+            console.log(err)
+            return reject(error)
+          } else console.log('Datos insertados con éxito.')
+        }
       )
-      console.log(result)
-      return resolve(result)
+
+      requestSql.addParameter('createdAt', TYPES.DateTime, moment())
+
+      connectionSql.execSql(requestSql)
+
+      return resolve()
     } catch (error) {
       console.log(error)
       return reject(error)
@@ -221,8 +246,8 @@ function main() {
         let { data, success } = getData(text, subject)
         if (success) {
           console.log(data)
-          // await insertDb(data)
-          // await modifyMessage(message.id)
+          await insertDb(data)
+          await modifyMessage(message.id)
         }
       }
 
@@ -296,9 +321,17 @@ app.get('/success', async (req, res, next) => {
   }
 })
 
-// cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
-//   main()
-// })
+//Eventos
+connectionSql.on('connect', function (err) {
+  if (err) console.log('Error: ', err)
 
-//Listen
-app.listen(3001, () => console.log('Servidor iniciado'))
+  // cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
+  //   main()
+  // })
+
+  //Listen
+  app.listen(3001, () => console.log('Servidor iniciado'))
+})
+
+//Conectado con la base de datos
+connectionSql.connect()

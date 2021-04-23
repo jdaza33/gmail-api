@@ -19,6 +19,7 @@
     "mssql": "^6.3.1",
     "node-gmail-api": "^1.0.0",
     "path": "^0.12.7",
+    "tedious": "^11.0.7",
     "urldecode": "^1.0.1",
     "utf8": "^3.0.0"
   }
