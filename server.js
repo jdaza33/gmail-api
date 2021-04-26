@@ -12,6 +12,7 @@ const path = require('path')
 const decode = require('urldecode')
 const moment = require('moment')
 const cron = require('node-cron')
+const pm2 = require('pm2')
 const ConnectionSql = require('tedious').Connection
 const RequestSql = require('tedious').Request
 const TYPES = require('tedious').TYPES
@@ -43,17 +44,15 @@ const oAuth2Client = new google.auth.OAuth2(
 if (fs.existsSync('./token.json')) {
   const token = require('./token.json')
   oAuth2Client.setCredentials(JSON.parse(JSON.stringify(token)))
-  oAuth2Client.on('tokens', (tokens) => {
-    if (tokens.refresh_token) {
-      oAuth2Client.setCredentials({
-        refresh_token: tokens.refresh_token,
-      })
-    }
-    oAuth2Client.setCredentials({
-      refresh_token: tokens.refresh_token,
-    })
-  })
+  // oAuth2Client.setCredentials({
+  //   refresh_token: token.refresh_token,
+  // })
 }
+
+oAuth2Client.on('tokens', (tokens) => {
+  console.log('tokens', tokens)
+  global.expireTokenMs = tokens.expiry_date
+})
 
 /**
  * Listar los correos no leidos
@@ -238,8 +237,13 @@ function insertDb({
 
 function main() {
   return new Promise(async (resolve, reject) => {
+    console.log(
+      `\n\n################################## ${new Date()} #####################################`
+    )
     try {
       let messages = await listMessages()
+
+      if (messages.length == 0) console.log('No hay registros nuevos..')
 
       for (let message of messages) {
         let { body: text, subject } = await getBodyMessage(message.id)
@@ -251,7 +255,25 @@ function main() {
         }
       }
 
-      resolve()
+      return resolve()
+    } catch (error) {
+      return reject(error)
+    }
+  })
+}
+
+function checkAccessToken() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (global.expireTokenMs) {
+        let now = Date.now()
+        if (now > global.expireTokenM)
+          pm2.restart('server', (err, proc) => {
+            console.log('### Token actualizado ###')
+          })
+      }
+
+      return resolve()
     } catch (error) {
       return reject(error)
     }
@@ -325,9 +347,13 @@ app.get('/success', async (req, res, next) => {
 connectionSql.on('connect', function (err) {
   if (err) console.log('Error: ', err)
 
-  // cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
-  //   main()
-  // })
+  cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
+    main()
+  })
+
+  cron.schedule('* * * * *', () => {
+    checkAccessToken()
+  })
 
   //Listen
   app.listen(3001, () => console.log('Servidor iniciado'))
