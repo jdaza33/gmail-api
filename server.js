@@ -325,9 +325,9 @@ app.get('/success', async (req, res, next) => {
 connectionSql.on('connect', function (err) {
   if (err) console.log('Error: ', err)
 
-  // cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
-  //   main()
-  // })
+  cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
+   main()
+  })
 
   //Listen
   app.listen(3001, () => console.log('Servidor iniciado'))
