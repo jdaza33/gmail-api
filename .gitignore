@@ -2,6 +2,9 @@
 db.js
 test.js
 credentials.json
+credentials_jdaza.json
+token_gmail.json
+token_jdaza.json
 token.json
 t.json
 node_modules
