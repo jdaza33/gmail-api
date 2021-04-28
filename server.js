@@ -74,7 +74,7 @@ function listMessages() {
           return reject(err)
         }
         if (!res.data.messages) return resolve([])
-        // console.log(res)
+        // console.log(res.data.messages)
         return resolve(res.data.messages)
       }
     )
@@ -95,12 +95,15 @@ function getBodyMessage(id) {
 
       // console.log(res.data.payload)
       let subject = res.data.payload.headers.find((h) => h.name == 'Subject')
+      console.log(res.data.payload.parts)
+
+      let parts = []
+      for (let part of res.data.payload.parts) {
+        parts.push(Buffer.from(part.body.data, 'base64').toString('utf-8'))
+      }
 
       resolve({
-        body: Buffer.from(
-          res.data.payload.parts[0].body.data,
-          'base64'
-        ).toString('utf-8'),
+        parts,
         subject: subject ? subject.value : 0,
       })
     })
@@ -132,14 +135,16 @@ function modifyMessage(id) {
 
 /**
  * Separa los datos de un string que usa el delimitador |
- * @param {String} data
+ * @param {Array} parts
  * @param {String} subj
  * @returns {Object}
  */
-function getData(data, subj) {
-  console.log(data)
+function getData(parts, subj) {
+  console.log(parts)
 
-  if (data.indexOf('|') >= 0) {
+  let data = parts.find((p) => p.indexOf('|') >= 0)
+
+  if (data) {
     let arrayData = data.split('|')
     let newArrayData = []
 
@@ -218,7 +223,7 @@ function insertDb({
         function (err, rowCount, rows) {
           if (err) {
             console.log(err)
-            return reject(error)
+            return reject(err)
           } else console.log('Datos insertados con éxito.')
         }
       )
@@ -246,8 +251,9 @@ function main() {
       if (messages.length == 0) console.log('No hay registros nuevos..')
 
       for (let message of messages) {
-        let { body: text, subject } = await getBodyMessage(message.id)
-        let { data, success } = getData(text, subject)
+        let { parts, subject } = await getBodyMessage(message.id)
+        // console.log(text, subject)
+        let { data, success } = getData(parts, subject)
         if (success) {
           console.log(data)
           await insertDb(data)
