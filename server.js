@@ -228,7 +228,17 @@ function insertDb({
         }
       )
 
-      requestSql.addParameter('createdAt', TYPES.DateTime, moment())
+      let now = moment()
+      let myDateInt = Date.UTC(
+        now.get('year'),
+        now.get('month'),
+        now.get('day') + 2,
+        now.get('hour'),
+        now.get('minute')
+      )
+      let myDateObj = new Date(myDateInt).toISOString().replace(/Z$/, '')
+
+      requestSql.addParameter('createdAt', TYPES.VarChar, myDateObj)
 
       connectionSql.execSql(requestSql)
 
@@ -340,6 +350,26 @@ app.get('/execute', async (req, res, next) => {
   }
 })
 
+app.get('/test', async (req, res, next) => {
+  try {
+    await insertDb({
+      nombre: 'Prueba',
+      direccion: 'test',
+      cp: '12345',
+      telefono1: '123456',
+      telefono2: '123456',
+      aparato: 'LAVADORA',
+      marca: 'LG',
+      averia: 'No prende',
+      nro: 123,
+    })
+    res.json({ success: 1 })
+  } catch (error) {
+    console.log(error)
+    res.status(403).json({ success: 0, error })
+  }
+})
+
 app.get('/success', async (req, res, next) => {
   try {
     res.sendFile(path.join(__dirname + '/views/landing.html'))
@@ -354,11 +384,11 @@ connectionSql.on('connect', function (err) {
   if (err) console.log('Error: ', err)
 
   cron.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *', () => {
-    main()
+    // main()
   })
 
   cron.schedule('* * * * *', () => {
-    checkAccessToken()
+    // checkAccessToken()
   })
 
   //Listen
