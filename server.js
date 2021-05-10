@@ -65,8 +65,7 @@ function listMessages() {
     gmail.users.messages.list(
       {
         userId: 'me',
-        q:
-          'from:pedidos@satdelamarca.com OR from:pedidos.2@satdelamarca.com OR from:pedidos.3@satdelamarca.com OR from:dmartinez@electrorenova.es OR from:blackencio33@gmail.com is:unread',
+        q: 'from:pedidos@satdelamarca.com OR from:pedidos.2@satdelamarca.com OR from:pedidos.3@satdelamarca.com OR from:dmartinez@electrorenova.es OR from:blackencio33@gmail.com is:unread',
       },
       (err, res) => {
         if (err) {
@@ -155,16 +154,8 @@ function getData(parts, subj) {
       newArrayData = [...part1, '', ...part2]
     }
 
-    let [
-      nombre,
-      direccion,
-      cp,
-      telefono1,
-      telefono2,
-      aparato,
-      marca,
-      averia,
-    ] = newArrayData
+    let [nombre, direccion, cp, telefono1, telefono2, aparato, marca, averia] =
+      newArrayData
 
     //Modificamos el nombre
     let __nombre = nombre.split('\r\n')
@@ -232,7 +223,7 @@ function insertDb({
       let myDateInt = Date.UTC(
         now.get('year'),
         now.get('month'),
-        now.get('day') + 2,
+        now.get('date'),
         now.get('hour'),
         now.get('minute')
       )
@@ -383,9 +374,12 @@ app.get('/success', async (req, res, next) => {
 connectionSql.on('connect', function (err) {
   if (err) console.log('Error: ', err)
 
-  cron.schedule('0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *', () => {
-    main()
-  })
+  cron.schedule(
+    '0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *',
+    () => {
+      main()
+    }
+  )
 
   cron.schedule('* * * * *', () => {
     checkAccessToken()
